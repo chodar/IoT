@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include <SPI.h>
 
 /*
  *  This sketch sends data via HTTP GET requests to data.sparkfun.com service.
@@ -12,10 +11,10 @@
  */
 
 // https://github.com/ropg/ezTime
-//#include <ezTime.h>
+#include <ezTime.h>
 
 
-#include "c:\private\arduino\mylib\world.h"
+#include "C:\private\IoT\arduino\mylib\world.h"
 
 const char* host = "mobile.events.data.microsoft.com";
 
@@ -23,19 +22,17 @@ const char* ssids[] = { "Internet domowy", "Internet_Domowy_3478C4", "PLAY-ONLIN
 const char* passwds[] = { "MzQ3OEM0", "MzQ3OEM0", "0MTN30DG", "83110511433", NULL };
 const int ssidsNum = 5;
 
-const char* apiKeys[] = {"YGUSONH3PHNZKW3Q", "9VDTPW5PDGZXQS8Y", "YRBUQQTUDYWHHT8X", "6JKL22W4MBIK975G"};
-#define CURRENT_DEVICE 3
-
-#define ONE_WIRE_BUS 4
+const char* devices[] = { "salon", "sypialnia_rodzicow", "sypialnia_Tomka", "sypialnia_Julka_i_Ignasia"};
+const char * deviceName = devices[1];
 #define RESET_SIGNAL_PIN 6
 #define LED1 1
 #define LED2 1
 
 #define ITERATION_DELAY_MS 10*1000
 #define REBOOT_EVERY_MS 60*60*1000
+#define ONE_WIRE_BUS 4
 
 World * world = NULL;
-
 
 
 void setup() {
@@ -63,9 +60,17 @@ void setup() {
     restart();
   }
 
- //  waitForSync();
-  //Serial.println("UTC: " + UTC.dateTime());
-  
+  waitForSync();
+}
+
+String getMacAsString()
+{
+  byte mac[6];
+  WiFi.macAddress(mac);
+  char macChars[18];
+  sprintf(macChars, "%2X:%2X:%2X:%2X:%2X:%2X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+  return String(macChars);
 }
 
 bool connectToAp()
@@ -103,21 +108,7 @@ bool connectToAp()
         Serial.println("WiFi connected");
         Serial.println("IP address: ");
         Serial.println(WiFi.localIP());
-
-        byte mac[6];
-        WiFi.macAddress(mac);
-        Serial.print("MAC: ");
-        Serial.print(mac[5],HEX);
-        Serial.print(":");
-        Serial.print(mac[4],HEX);
-        Serial.print(":");
-        Serial.print(mac[3],HEX);
-        Serial.print(":");
-        Serial.print(mac[2],HEX);
-        Serial.print(":");
-        Serial.print(mac[1],HEX);
-        Serial.print(":");
-        Serial.println(mac[0],HEX);
+        Serial.println("Mac: " + getMacAsString());
         return true;
       }
     }    
@@ -164,13 +155,21 @@ void restart()
   Serial.println("Restart FAILED even more!");
 }
 
+String getFormatedTime()
+{
+  // 2019-12-26T19:54:30.835000Z
+  return UTC.dateTime("Y-m-d\\TH:i:s.v000\\Z");
+}
+
 void loop() {
-  Serial.println(String("Starting iteration: ") + String(iterationNum) + String(", uptime sec: ") + (millis()/1000));
+ events();
+ 
+ Serial.println(String("Starting iteration: ") + String(iterationNum) + String(", uptime sec: ") + (millis()/1000) + String(", time: ") + getFormatedTime() );
 
   world->printState();
   //String url = "/update?field1=" + String(world->getTemperature()) + "&field2=" + String(world->getSmoke()) + "&field3=" + String(world->getHumidity()) + "&field8=" + String(iterationNum) + "&api_key=" + apiKeys[CURRENT_DEVICE];
 
-  String url = "/OneCollector/1.0/t.js?qsp=True&apikey=a55e261cc5634c04b0c8fe82eee465c3-16eacb35-4f57-4a83-b6cd-19ca27f65fb1-7099&name=%22ello_get%22&iKey=%22o:a55e261cc5634c04b0c8fe82eee465c3%22&*temperature=" + String(world->getTemperature()) + "&*humidity=" + String(world->getHumidity()) + "&*location=%22Ms%22&time=%221970-01-01T00:00:00.0000000Z%22&upload-time=0";
+  String url = "/OneCollector/1.0/t.js?qsp=True&apikey=4afa09bcb0ff4010abdb9e973c6a6eb1-beead718-7b4d-40f9-88fc-4c455a487959-7330&name=%22sensor_reading%22&iKey=%22o:4afa09bcb0ff4010abdb9e973c6a6eb1%22&*temperature=" + String(world->getTemperature()) + "&*humidity=" + String(world->getHumidity()) + "&*location=%22" + deviceName + + "%22&*device_id=%22" + getMacAsString() + "%22&time=%22" + getFormatedTime() + "%22";
   
   String response;
   bool succeeded = issueGetRequestWithRetries(3, 1000, url, host, 443, response);

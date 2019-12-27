@@ -1,7 +1,4 @@
 
-#include <OneWire.h>
-#include <DallasTemperature.h>
-
 #include <DHTesp.h> // https://github.com/beegee-tokyo/DHTesp
 
 class World
@@ -38,47 +35,6 @@ class WorldNoResult : public World
     {
 		return NoResult;
 	};
-};
-
-class WorldDallas: public World
-{
-public:
-	WorldDallas(int pin) : oneWire(pin), sensors(&oneWire)
-	{
-		sensors.begin(); 
-	}
-
-	virtual float getTemperature()
-	{
-		Serial.print("Requesting temperatures...");
-		sensors.requestTemperatures(); // Send the command to get temperatures
-		Serial.println("DONE");
-
-		Serial.print("Temperature is: ");
-
-		float temperature = sensors.getTempCByIndex(0);
-		
-		Serial.println(String(temperature)); 
-		
-		return temperature;
-	};
-
-	virtual float getHumidity()
-	{
-		return NoResult;
-	};
-
-	virtual float getSmoke()
-	{
-		return NoResult;
-	};
-
-private:
-	// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
-	OneWire oneWire;
-	DallasTemperature sensors;
-
-
 };
 
 
